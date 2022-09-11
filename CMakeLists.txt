@@ -22,11 +22,15 @@ project(MiniGPKG)
 
 find_package(SQLite3 REQUIRED)
 
+option(MINIGPKG_CODE_COVERAGE "Enable coverage reporting" OFF)
+add_library(coverage_config INTERFACE)
+
 include_directories(src)
 add_library(minigpkg src/minigpkg/nanoarrow_sqlite3.c src/minigpkg/nanoarrow.c)
 target_link_libraries(minigpkg PUBLIC SQLite::SQLite3)
 
 if (MINIGPKG_BUILD_TESTS)
+  set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=full --error-exitcode=1")
   include(CTest)
   include(FetchContent)
 
@@ -44,6 +48,13 @@ if (MINIGPKG_BUILD_TESTS)
   enable_testing()
 
   add_executable(nanoarrow_sqlite3_test src/minigpkg/nanoarrow_sqlite3_test.cc)
+
+  if(MINIGPKG_CODE_COVERAGE)
+      target_compile_options(coverage_config INTERFACE -O0 -g --coverage)
+      target_link_options(coverage_config INTERFACE --coverage)
+      target_link_libraries(minigpkg coverage_config)
+  endif()
+
   target_link_libraries(nanoarrow_sqlite3_test minigpkg arrow_shared gtest_main)
 
   include(GoogleTest)

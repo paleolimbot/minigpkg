@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main, master]
 
-name: Build and Test C Library
+name: Build and Test
 
 jobs:
   build-and-test:
@@ -48,7 +48,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@main
         with:
-          name: nanoarrow-memcheck
+          name: minigpkg-memcheck
           path: build/Testing/Temporary/MemoryChecker.*.log
 
       - name: Calculate coverage
@@ -56,7 +56,8 @@ jobs:
           SOURCE_PREFIX=`pwd`
           mkdir build/cov
           cd build/cov
-          gcov -abcfu --source-prefix=$SOURCE_PREFIX `find ../CMakeFiles/nanoarrow.dir/ -name "*.gcno"`
+          rm `find ../CMakeFiles/minigpkg.dir/ -name "nanoarrow.gcno"`
+          gcov -abcfu --source-prefix=$SOURCE_PREFIX `find ../CMakeFiles/minigpkg.dir/ -name "*.gcno"`
 
       - name: Upload coverage
         uses: codecov/codecov-action@v2
