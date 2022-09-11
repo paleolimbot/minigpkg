@@ -56,7 +56,7 @@ jobs:
           SOURCE_PREFIX=`pwd`
           mkdir build/cov
           cd build/cov
-          rm ../CMakeFiles/minigpkg.dir/nanoarrow.c.gc*
+          rm ../CMakeFiles/minigpkg.dir/src/minigpkg/nanoarrow.c.gc*
           gcov -abcfu --source-prefix=$SOURCE_PREFIX `find ../CMakeFiles/minigpkg.dir/ -name "*.gcno"`
 
       - name: Upload coverage
