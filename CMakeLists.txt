@@ -38,7 +38,7 @@ endif()
 
 
 if (MINIGPKG_BUILD_TESTS)
-  set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=full --error-exitcode=1")
+  set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=full --suppressions=${CMAKE_CURRENT_LIST_DIR}/valgrind.supp --error-exitcode=1")
   include(CTest)
   include(FetchContent)
 
