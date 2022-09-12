@@ -114,7 +114,7 @@ TEST(SQLite3Test, SQLite3ResultWithGuessedSchema) {
   con.add_crossfit_table();
 
   StmtHolder stmt;
-  stmt.prepare(con.ptr, "SELECT * from crossfit");
+  stmt.prepare(con.ptr, "SELECT exercise, difficulty_level, CAST(exercise AS BLOB) as blob_col, difficulty_level * 1.1 AS float_col from crossfit");
 
   struct ArrowSQLite3Result result;
   ASSERT_EQ(ArrowSQLite3ResultInit(&result), 0);
@@ -132,7 +132,12 @@ TEST(SQLite3Test, SQLite3ResultWithGuessedSchema) {
   ASSERT_ARROW_OK(maybe_array.status());
 
   EXPECT_TRUE(maybe_array.ValueUnsafe()->type()->Equals(
-      struct_({field("exercise", utf8()), field("difficulty_level", int64())})));
+      struct_({
+        field("exercise", utf8()),
+        field("difficulty_level", int64()),
+        field("blob_col", binary()),
+        field("float_col", float64())
+      })));
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
   EXPECT_EQ(arr->length(), 4);
@@ -163,7 +168,8 @@ TEST(SQLite3Test, SQLite3ResultWithExplicitSchema) {
   struct ArrowSQLite3Result result;
   ASSERT_EQ(ArrowSQLite3ResultInit(&result), 0);
 
-  auto explicit_schema = arrow::schema({field("col1", large_utf8()), field("col2", utf8())});
+  auto explicit_schema = arrow::schema(
+    {field("col1", large_utf8()), field("col2", int16())});
   struct ArrowSchema schema_in;
   ASSERT_ARROW_OK(ExportSchema(*explicit_schema, &schema_in));
   ASSERT_EQ(ArrowSQLite3ResultSetSchema(&result, &schema_in), 0);
@@ -181,7 +187,7 @@ TEST(SQLite3Test, SQLite3ResultWithExplicitSchema) {
   ASSERT_ARROW_OK(maybe_array.status());
 
   EXPECT_TRUE(maybe_array.ValueUnsafe()->type()->Equals(
-      struct_({field("col1", large_utf8()), field("col2", utf8())})));
+      struct_({field("col1", large_utf8()), field("col2", int16())})));
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
   EXPECT_EQ(arr->length(), 4);
@@ -192,11 +198,11 @@ TEST(SQLite3Test, SQLite3ResultWithExplicitSchema) {
   EXPECT_EQ(col1->Value(2), "Push Jerk");
   EXPECT_EQ(col1->Value(3), "Bar Muscle Up");
 
-  auto col2 = std::dynamic_pointer_cast<StringArray>(arr->field(1));
-  EXPECT_EQ(col2->Value(0), "3");
-  EXPECT_EQ(col2->Value(1), "5");
-  EXPECT_EQ(col2->Value(2), "7");
-  EXPECT_EQ(col2->Value(3), "10");
+  auto col2 = std::dynamic_pointer_cast<Int16Array>(arr->field(1));
+  EXPECT_EQ(col2->Value(0), 3);
+  EXPECT_EQ(col2->Value(1), 5);
+  EXPECT_EQ(col2->Value(2), 7);
+  EXPECT_EQ(col2->Value(3), 10);
 
   ArrowSQLite3ResultReset(&result);
 }

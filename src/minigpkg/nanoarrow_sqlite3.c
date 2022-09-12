@@ -9,7 +9,6 @@
 
 struct ArrowSQLite3ResultPrivate {
   struct ArrowError error;
-  struct ArrowBuffer sqlite_column_types;
 };
 
 int ArrowSQLite3ResultInit(struct ArrowSQLite3Result* result) {
@@ -25,7 +24,6 @@ int ArrowSQLite3ResultInit(struct ArrowSQLite3Result* result) {
   struct ArrowSQLite3ResultPrivate* private_data =
       (struct ArrowSQLite3ResultPrivate*)result->private_data;
   private_data->error.message[0] = '\0';
-  ArrowBufferInit(&private_data->sqlite_column_types);
 
   return 0;
 }
@@ -40,10 +38,7 @@ void ArrowSQLite3ResultReset(struct ArrowSQLite3Result* result) {
   }
 
   if (result->private_data != NULL) {
-    struct ArrowSQLite3ResultPrivate* private_data =
-        (struct ArrowSQLite3ResultPrivate*)result->private_data;
-    ArrowBufferReset(&private_data->sqlite_column_types);
-    ArrowFree(private_data);
+    ArrowFree(result->private_data);
   }
 }
 
@@ -51,71 +46,6 @@ const char* ArrowSQLite3ResultError(struct ArrowSQLite3Result* result) {
   struct ArrowSQLite3ResultPrivate* private_data =
       (struct ArrowSQLite3ResultPrivate*)result->private_data;
   return private_data->error.message;
-}
-
-static int ArrowSQLite3TypeFromArrowType(enum ArrowType storage_type, int* sqlite_type) {
-  switch (storage_type) {
-    case NANOARROW_TYPE_NA:
-      *sqlite_type = SQLITE_NULL;
-      return 0;
-
-    case NANOARROW_TYPE_BOOL:
-    case NANOARROW_TYPE_UINT8:
-    case NANOARROW_TYPE_INT8:
-    case NANOARROW_TYPE_UINT16:
-    case NANOARROW_TYPE_INT16:
-    case NANOARROW_TYPE_UINT32:
-    case NANOARROW_TYPE_INT32:
-    case NANOARROW_TYPE_UINT64:
-    case NANOARROW_TYPE_INT64:
-      *sqlite_type = SQLITE_INTEGER;
-      return 0;
-
-    case NANOARROW_TYPE_HALF_FLOAT:
-    case NANOARROW_TYPE_FLOAT:
-    case NANOARROW_TYPE_DOUBLE:
-      *sqlite_type = SQLITE_FLOAT;
-      return 0;
-
-    case NANOARROW_TYPE_STRING:
-    case NANOARROW_TYPE_LARGE_STRING:
-      *sqlite_type = SQLITE_TEXT;
-      return 0;
-
-    case NANOARROW_TYPE_BINARY:
-    case NANOARROW_TYPE_LARGE_BINARY:
-    case NANOARROW_TYPE_FIXED_SIZE_BINARY:
-      *sqlite_type = SQLITE_BLOB;
-      return 0;
-
-    default:
-      return EINVAL;
-  }
-}
-
-static int ArrowSQlite3ResolveSQLiteTypes(struct ArrowSQLite3Result* result,
-                                          struct ArrowSchema* schema) {
-  struct ArrowSQLite3ResultPrivate* private =
-      (struct ArrowSQLite3ResultPrivate*)result->private_data;
-
-  ArrowBufferReset(&private->sqlite_column_types);
-  struct ArrowSchemaView schema_view;
-  int sqlite_type;
-  for (int64_t i = 0; i < schema->n_children; i++) {
-    NANOARROW_RETURN_NOT_OK(
-        ArrowSchemaViewInit(&schema_view, schema->children[i], &private->error));
-    if (ArrowSQLite3TypeFromArrowType(schema_view.storage_data_type, &sqlite_type) !=
-        NANOARROW_OK) {
-      ArrowErrorSet(&private->error,
-                    "Arrow type for column %d is not supported by SQLite3", (int)i);
-      return EINVAL;
-    }
-
-    NANOARROW_RETURN_NOT_OK(
-        ArrowBufferAppendInt32(&private->sqlite_column_types, sqlite_type));
-  }
-
-  return 0;
 }
 
 int ArrowSQLite3ResultSetSchema(struct ArrowSQLite3Result* result,
@@ -132,8 +62,6 @@ int ArrowSQLite3ResultSetSchema(struct ArrowSQLite3Result* result,
     ArrowErrorSet(&private->error, "schema is not a struct");
     return EINVAL;
   }
-
-  NANOARROW_RETURN_NOT_OK(ArrowSQlite3ResolveSQLiteTypes(result, schema));
 
   memcpy(&result->schema, schema, sizeof(struct ArrowSchema));
   schema->release = NULL;
@@ -181,7 +109,7 @@ static int ArrowSQLite3ColumnSchema(const char* name, const char* declared_type,
       result = ArrowSchemaInit(schema_out, NANOARROW_TYPE_INT64);
       break;
     case SQLITE_FLOAT:
-      result = ArrowSchemaInit(schema_out, NANOARROW_TYPE_INT32);
+      result = ArrowSchemaInit(schema_out, NANOARROW_TYPE_DOUBLE);
       break;
     case SQLITE_BLOB:
       result = ArrowSchemaInit(schema_out, NANOARROW_TYPE_BINARY);
@@ -245,7 +173,6 @@ int ArrowSQLite3ResultStep(struct ArrowSQLite3Result* result, sqlite3_stmt* stmt
   // Make sure we have a schema
   if (result->schema.release == NULL) {
     NANOARROW_RETURN_NOT_OK(ArrowSQLite3GuessSchema(stmt, &result->schema));
-    NANOARROW_RETURN_NOT_OK(ArrowSQlite3ResolveSQLiteTypes(result, &result->schema));
   }
 
   // Make sure we have an array
@@ -273,13 +200,12 @@ int ArrowSQLite3ResultStep(struct ArrowSQLite3Result* result, sqlite3_stmt* stmt
   // Instead of using sqlite3_column_type(), we use the type most appropriate
   // for the column type specified by schema so we can leverage sqlite3's facilities
   // for type conversion.
-  int* sqlite_types = (int*)private_data->sqlite_column_types.data;
   struct ArrowStringView string_view;
   struct ArrowBufferView buffer_view;
   int result_code;
 
   for (int i = 0; i < n_col; i++) {
-    switch (sqlite_types[i]) {
+    switch (sqlite3_column_type(stmt, i)) {
       case SQLITE_NULL:
         result_code = ArrowArrayAppendNull(result->array.children[i], 1);
         break;
