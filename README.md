@@ -1,6 +1,8 @@
 
 # minigpkg
 
+[![Codecov test coverage](https://codecov.io/gh/paleolimbot/minigpkg/branch/main/graph/badge.svg)](https://app.codecov.io/gh/paleolimbot/minigpkg?branch=main)
+
 This repo is a proof-of-concept [GeoPackage](https://www.geopackage.org/) IO library based on [nanoarrow](https://github.com/apache/arrow-nanoarrow). Right now I'm just using it as a real world application of the nanoarrow C library to make sure it scales to input from some real-world data.
 
 You can configure and build the project using CMake. You'll need sqlite3 installed (cmake can find most system installations of sqlite3 without any special configuration).
