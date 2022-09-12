@@ -38,7 +38,7 @@ class ConnectionHolder {
     exec("CREATE TABLE crossfit (exercise text,difficulty_level int)");
     exec(
         "INSERT INTO crossfit VALUES ('Push Ups', 3), ('Pull Ups', 5) , ('Push Jerk', "
-        "7), ('Bar Muscle Up', 10)");
+        "7), ('Bar Muscle Up', 10), ('Unknown', NULL)");
   }
 
   ~ConnectionHolder() {
@@ -140,19 +140,21 @@ TEST(SQLite3Test, SQLite3ResultWithGuessedSchema) {
       })));
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
-  EXPECT_EQ(arr->length(), 4);
+  EXPECT_EQ(arr->length(), 5);
 
   auto col1 = std::dynamic_pointer_cast<StringArray>(arr->field(0));
   EXPECT_EQ(col1->Value(0), "Push Ups");
   EXPECT_EQ(col1->Value(1), "Pull Ups");
   EXPECT_EQ(col1->Value(2), "Push Jerk");
   EXPECT_EQ(col1->Value(3), "Bar Muscle Up");
+  EXPECT_EQ(col1->Value(4), "Unknown");
 
   auto col2 = std::dynamic_pointer_cast<Int64Array>(arr->field(1));
   EXPECT_EQ(col2->Value(0), 3);
   EXPECT_EQ(col2->Value(1), 5);
   EXPECT_EQ(col2->Value(2), 7);
   EXPECT_EQ(col2->Value(3), 10);
+  EXPECT_TRUE(col2->IsNull(4));
 
   ArrowSQLite3ResultReset(&result);
 }
@@ -190,19 +192,21 @@ TEST(SQLite3Test, SQLite3ResultWithExplicitSchema) {
       struct_({field("col1", large_utf8()), field("col2", int16())})));
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
-  EXPECT_EQ(arr->length(), 4);
+  EXPECT_EQ(arr->length(), 5);
 
   auto col1 = std::dynamic_pointer_cast<LargeStringArray>(arr->field(0));
   EXPECT_EQ(col1->Value(0), "Push Ups");
   EXPECT_EQ(col1->Value(1), "Pull Ups");
   EXPECT_EQ(col1->Value(2), "Push Jerk");
   EXPECT_EQ(col1->Value(3), "Bar Muscle Up");
+  EXPECT_EQ(col1->Value(4), "Unknown");
 
   auto col2 = std::dynamic_pointer_cast<Int16Array>(arr->field(1));
   EXPECT_EQ(col2->Value(0), 3);
   EXPECT_EQ(col2->Value(1), 5);
   EXPECT_EQ(col2->Value(2), 7);
   EXPECT_EQ(col2->Value(3), 10);
+  EXPECT_TRUE(col2->IsNull(4));
 
   ArrowSQLite3ResultReset(&result);
 }
