@@ -73,10 +73,10 @@ int main(int argc, char* argv[]) {
            (end - start) / (double)CLOCKS_PER_SEC);
 
     if (result != SQLITE_DONE) {
-        printf("<%s> %s\n", sqlite3_errstr(result), sqlite3_errmsg(con));
-        sqlite3_finalize(stmt);
-        sqlite3_close(con);
-        return 1;
+      printf("<%s> %s\n", sqlite3_errstr(result), sqlite3_errmsg(con));
+      sqlite3_finalize(stmt);
+      sqlite3_close(con);
+      return 1;
     }
 
     sqlite3_finalize(stmt);
@@ -92,17 +92,22 @@ int main(int argc, char* argv[]) {
 
     struct ArrowSQLite3Result arrow_result;
     ArrowSQLite3ResultInit(&arrow_result);
+    int64_t row_id = 0;
 
     printf("Building Arrow result for query %s\n", argv[i]);
     start = clock();
     do {
       result = ArrowSQLite3ResultStep(&arrow_result, stmt);
       if (result != 0) {
-        printf("<ArrowSQLite3ResultError> %s\n", ArrowSQLite3ResultError(&arrow_result));
+        printf("<ArrowSQLite3ResultError on row %ld> %s\n", (long)row_id,
+               ArrowSQLite3ResultError(&arrow_result));
         sqlite3_finalize(stmt);
         sqlite3_close(con);
         ArrowSQLite3ResultReset(&arrow_result);
+        return 1;
       }
+      
+      row_id++;
     } while (arrow_result.step_return_code == SQLITE_ROW);
 
     result = ArrowSQLite3ResultFinishArray(&arrow_result, &array);

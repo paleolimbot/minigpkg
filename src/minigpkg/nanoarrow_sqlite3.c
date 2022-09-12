@@ -238,6 +238,44 @@ int ArrowSQLite3ResultStep(struct ArrowSQLite3Result* result, sqlite3_stmt* stmt
     }
 
     if (result_code != NANOARROW_OK) {
+      // Set a decent error message
+      const char* sqlite_val_type_char;
+      switch (sqlite3_column_type(stmt, i)) {
+        case SQLITE_NULL:
+          sqlite_val_type_char = "SQLITE_NULL";
+          break;
+        case SQLITE_INTEGER:
+          sqlite_val_type_char = "SQLITE_INTEGER";
+          break;
+        case SQLITE_FLOAT:
+          sqlite_val_type_char = "SQLITE_FLOAT";
+          break;
+        case SQLITE_BLOB:
+          sqlite_val_type_char = "SQLITE_BLOB";
+          break;
+        case SQLITE_TEXT:
+          sqlite_val_type_char = "SQLITE_TEXT";
+          break;
+        default:
+          sqlite_val_type_char = "Unknown";
+          break;
+      }
+
+      const char* val_char = (const char*)sqlite3_column_text(stmt, i);
+      const char* dots = "";
+      int val_len = sqlite3_column_bytes(stmt, i);
+      if (val_len > 15) {
+        dots = "...";
+        val_len = 15;
+      }
+
+      ArrowErrorSet(
+          &private_data->error,
+          "Row %ld, column %d ('%s'): \n  Can't append value '%.*s%s' (SQLite type "
+          "%s) to Arrow type with format '%s'",
+          result->array.length, i, result->schema.children[i]->name, val_len, val_char,
+          dots, sqlite_val_type_char, result->schema.children[i]->format);
+
       // Attempt to leave the parent array in a consistent state with equal-length
       // columns even if there was an error appending the value
       ArrowArrayAppendNull(result->array.children[i], 1);

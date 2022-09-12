@@ -35,9 +35,9 @@ class ConnectionHolder {
   }
 
   void add_crossfit_table() {
-    exec("CREATE TABLE crossfit (exercise text,difficulty_level int)");
+    exec("CREATE TABLE crossfit (exercise TEXT, difficulty_level INTEGER)");
     exec(
-        "INSERT INTO crossfit VALUES ('Push Ups', 3), ('Pull Ups', 5) , ('Push Jerk', "
+        "INSERT INTO crossfit VALUES ('Push Ups', 3), ('Pull Ups', 5), ('Push Jerk', "
         "7), ('Bar Muscle Up', 10), ('Unknown', NULL)");
   }
 
@@ -114,7 +114,9 @@ TEST(SQLite3Test, SQLite3ResultWithGuessedSchema) {
   con.add_crossfit_table();
 
   StmtHolder stmt;
-  stmt.prepare(con.ptr, "SELECT exercise, difficulty_level, CAST(exercise AS BLOB) as blob_col, difficulty_level * 1.1 AS float_col from crossfit");
+  stmt.prepare(con.ptr,
+               "SELECT exercise, difficulty_level, CAST(exercise AS BLOB) as blob_col, "
+               "difficulty_level * 1.1 AS float_col from crossfit");
 
   struct ArrowSQLite3Result result;
   ASSERT_EQ(ArrowSQLite3ResultInit(&result), 0);
@@ -132,12 +134,8 @@ TEST(SQLite3Test, SQLite3ResultWithGuessedSchema) {
   ASSERT_ARROW_OK(maybe_array.status());
 
   EXPECT_TRUE(maybe_array.ValueUnsafe()->type()->Equals(
-      struct_({
-        field("exercise", utf8()),
-        field("difficulty_level", int64()),
-        field("blob_col", binary()),
-        field("float_col", float64())
-      })));
+      struct_({field("exercise", utf8()), field("difficulty_level", int64()),
+               field("blob_col", binary()), field("float_col", float64())})));
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
   EXPECT_EQ(arr->length(), 5);
@@ -170,8 +168,8 @@ TEST(SQLite3Test, SQLite3ResultWithExplicitSchema) {
   struct ArrowSQLite3Result result;
   ASSERT_EQ(ArrowSQLite3ResultInit(&result), 0);
 
-  auto explicit_schema = arrow::schema(
-    {field("col1", large_utf8()), field("col2", int16())});
+  auto explicit_schema =
+      arrow::schema({field("col1", large_utf8()), field("col2", int16())});
   struct ArrowSchema schema_in;
   ASSERT_ARROW_OK(ExportSchema(*explicit_schema, &schema_in));
   ASSERT_EQ(ArrowSQLite3ResultSetSchema(&result, &schema_in), 0);
@@ -239,6 +237,30 @@ TEST(SQLite3Test, SQLite3ResultFromEmpty) {
 
   auto arr = std::dynamic_pointer_cast<StructArray>(maybe_array.ValueUnsafe());
   EXPECT_EQ(arr->length(), 0);
+
+  ArrowSQLite3ResultReset(&result);
+}
+
+TEST(SQLite3Test, SQLite3ResultAppendError) {
+  ConnectionHolder con;
+  con.open_memory();
+  con.add_crossfit_table();
+
+  StmtHolder stmt;
+  stmt.prepare(con.ptr, "SELECT exercise from crossfit");
+
+  struct ArrowSQLite3Result result;
+  ASSERT_EQ(ArrowSQLite3ResultInit(&result), 0);
+
+  auto explicit_schema = arrow::schema({field("exercise", int32())});
+  struct ArrowSchema schema_in;
+  ASSERT_ARROW_OK(ExportSchema(*explicit_schema, &schema_in));
+  ASSERT_EQ(ArrowSQLite3ResultSetSchema(&result, &schema_in), 0);
+
+  EXPECT_EQ(ArrowSQLite3ResultStep(&result, stmt.ptr), EINVAL);
+  EXPECT_STREQ(ArrowSQLite3ResultError(&result),
+               "Row 0, column 0 ('exercise'): \n  Can't append value 'Push Ups' (SQLite "
+               "type SQLITE_TEXT) to Arrow type with format 'i'");
 
   ArrowSQLite3ResultReset(&result);
 }
