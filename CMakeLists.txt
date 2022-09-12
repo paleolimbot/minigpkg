@@ -38,6 +38,9 @@ endif()
 
 
 if (MINIGPKG_BUILD_TESTS)
+  add_executable(nanoarrow_sqlite3_bench src/minigpkg/nanoarrow_sqlite3_bench.c)
+  target_link_libraries(nanoarrow_sqlite3_bench minigpkg)
+
   set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=full --suppressions=${CMAKE_CURRENT_LIST_DIR}/valgrind.supp --error-exitcode=1")
   include(CTest)
   include(FetchContent)
