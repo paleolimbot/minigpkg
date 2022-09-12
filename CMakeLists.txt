@@ -28,6 +28,9 @@ add_library(coverage_config INTERFACE)
 include_directories(src)
 add_library(minigpkg src/minigpkg/nanoarrow_sqlite3.c src/minigpkg/nanoarrow.c)
 
+add_executable(nanoarrow_sqlite3_bench src/minigpkg/nanoarrow_sqlite3_bench.c)
+target_link_libraries(nanoarrow_sqlite3_bench minigpkg)
+
 if(MINIGPKG_CODE_COVERAGE)
   target_compile_options(coverage_config INTERFACE -O0 -g --coverage)
   target_link_options(coverage_config INTERFACE --coverage)
@@ -38,8 +41,6 @@ endif()
 
 
 if (MINIGPKG_BUILD_TESTS)
-  add_executable(nanoarrow_sqlite3_bench src/minigpkg/nanoarrow_sqlite3_bench.c)
-  target_link_libraries(nanoarrow_sqlite3_bench minigpkg)
 
   set(MEMORYCHECK_COMMAND_OPTIONS "--leak-check=full --suppressions=${CMAKE_CURRENT_LIST_DIR}/valgrind.supp --error-exitcode=1")
   include(CTest)
