@@ -1,0 +1,4 @@
+
+# cp ../src/minigpkg/nanoarrow_sqlite3.h ../src/minigpkg/nanoarrow_sqlite3.c \
+#   ../src/minigpkg/nanoarrow.h ../src/minigpkg/nanoarrow.c \
+#   src

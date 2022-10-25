@@ -1,0 +1,7 @@
+*.o
+*.so
+*.dll
+nanoarrow_sqlite3.h
+nanoarrow_sqlite3.c
+nanoarrow.h
+nanoarrow.c
