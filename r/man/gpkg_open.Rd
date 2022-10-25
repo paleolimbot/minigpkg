@@ -24,7 +24,7 @@ gpkg_query(con, sql, ptype = NULL, max_guess = 1000)
 
 gpkg_query_nanoarrow(con, sql, schema = NULL, max_guess = 1000)
 
-gpkg_query_table(con, sql, schema, max_guess = 1000)
+gpkg_query_table(con, sql, schema = NULL, max_guess = 1000)
 
 gpkg_open_test()
 
