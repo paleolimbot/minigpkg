@@ -33,10 +33,9 @@ test_that("gpkg_query() can read to data.frame", {
 
   expect_identical(
     gpkg_query(con, "SELECT * from crossfit"),
-    data.frame(
+    tibble::tibble(
       exercise = c("Push Ups", "Pull Ups", "Push Jerk", "Bar Muscle Up"),
-      difficulty_level = c(3, 5, 7, 10),
-      stringsAsFactors = FALSE
+      difficulty_level = c(3, 5, 7, 10)
     )
   )
 })
@@ -46,11 +45,10 @@ test_that("gpkg_query_table() can read to Table", {
   on.exit(gpkg_close(con))
 
   expect_identical(
-    as.data.frame(as.data.frame(gpkg_query_table(con, "SELECT * from crossfit"))),
-    data.frame(
+    tibble::as_tibble(gpkg_query_table(con, "SELECT * from crossfit")),
+    tibble::tibble(
       exercise = c("Push Ups", "Pull Ups", "Push Jerk", "Bar Muscle Up"),
-      difficulty_level = c(3L, 5L, 7L, 10L),
-      stringsAsFactors = FALSE
+      difficulty_level = c(3L, 5L, 7L, 10L)
     )
   )
 })
