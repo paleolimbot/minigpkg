@@ -2,6 +2,7 @@
 
 export(gpkg_close)
 export(gpkg_exec)
+export(gpkg_guess_schema)
 export(gpkg_list_tables)
 export(gpkg_open)
 export(gpkg_open_test)

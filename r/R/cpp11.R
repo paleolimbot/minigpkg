@@ -12,6 +12,10 @@ gpkg_cpp_exec <- function(con_sexp, sql) {
   .Call(`_minigpkg_gpkg_cpp_exec`, con_sexp, sql)
 }
 
+gpkg_cpp_guess_schema <- function(con_sexp, sql, max_guess, schema_xptr) {
+  invisible(.Call(`_minigpkg_gpkg_cpp_guess_schema`, con_sexp, sql, max_guess, schema_xptr))
+}
+
 gpkg_cpp_query <- function(con_sexp, sql, schema_xptr, array_xptr) {
   .Call(`_minigpkg_gpkg_cpp_query`, con_sexp, sql, schema_xptr, array_xptr)
 }

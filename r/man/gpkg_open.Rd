@@ -4,6 +4,7 @@
 \alias{gpkg_open}
 \alias{gpkg_close}
 \alias{gpkg_exec}
+\alias{gpkg_guess_schema}
 \alias{gpkg_query}
 \alias{gpkg_query_nanoarrow}
 \alias{gpkg_query_table}
@@ -17,11 +18,13 @@ gpkg_close(con)
 
 gpkg_exec(con, sql)
 
-gpkg_query(con, sql, ptype = NULL)
+gpkg_guess_schema(con, sql, max_guess = 1000)
 
-gpkg_query_nanoarrow(con, sql, schema = NULL)
+gpkg_query(con, sql, ptype = NULL, max_guess = 1000)
 
-gpkg_query_table(con, sql, schema)
+gpkg_query_nanoarrow(con, sql, schema = NULL, max_guess = 1000)
+
+gpkg_query_table(con, sql, schema, max_guess = 1000)
 
 gpkg_open_test()
 
@@ -33,6 +36,9 @@ gpkg_list_tables(con)
 \item{con}{A connection opened using \code{\link[=gpkg_open]{gpkg_open()}}}
 
 \item{sql}{An SQL statement}
+
+\item{max_guess}{The maximum number of rows to use to guess the output
+type.}
 
 \item{ptype}{A \code{data.frame()} to be used as a prototype for the
 result.}

@@ -7,6 +7,8 @@
 #' @param ptype A `data.frame()` to be used as a prototype for the
 #'   result.
 #' @param schema A target schema to use as the intended target types
+#' @param max_guess The maximum number of rows to use to guess the output
+#'   type.
 #'
 #' @export
 #'
@@ -38,19 +40,29 @@ gpkg_exec <- function(con, sql) {
 
 #' @rdname gpkg_open
 #' @export
-gpkg_query <- function(con, sql, ptype = NULL) {
+gpkg_guess_schema <- function(con, sql, max_guess = 1000) {
+  schema <- nanoarrow::nanoarrow_allocate_schema()
+  gpkg_cpp_guess_schema(con, sql, max_guess, schema);
+  schema
+}
+
+#' @rdname gpkg_open
+#' @export
+gpkg_query <- function(con, sql, ptype = NULL, max_guess = 1000) {
   if (is.null(ptype)) {
     schema <- NULL
   } else {
     schema <- nanoarrow::infer_nanoarrow_schema(nanoarrow::as_nanoarrow_array(ptype))
   }
 
-  as.data.frame(gpkg_query_nanoarrow(con, sql, schema = schema))
+  tibble::as_tibble(
+    gpkg_query_nanoarrow(con, sql, schema = schema, max_guess = max_guess)
+  )
 }
 
 #' @rdname gpkg_open
 #' @export
-gpkg_query_nanoarrow <- function(con, sql, schema = NULL) {
+gpkg_query_nanoarrow <- function(con, sql, schema = NULL, max_guess = 1000) {
   stopifnot(inherits(con, "gpkg_con"))
 
   sql <- as.character(sql)
@@ -62,6 +74,8 @@ gpkg_query_nanoarrow <- function(con, sql, schema = NULL) {
       nanoarrow::as_nanoarrow_schema(schema),
       schema_copy
     )
+  } else {
+    schema_copy <- gpkg_guess_schema(con, sql, max_guess)
   }
 
   array <- nanoarrow::nanoarrow_allocate_array()
@@ -73,8 +87,8 @@ gpkg_query_nanoarrow <- function(con, sql, schema = NULL) {
 
 #' @rdname gpkg_open
 #' @export
-gpkg_query_table <- function(con, sql, schema ) {
-  arrow::as_record_batch(gpkg_query_nanoarrow(con, sql))
+gpkg_query_table <- function(con, sql, schema = NULL, max_guess = 1000) {
+  arrow::as_record_batch(gpkg_query_nanoarrow(con, sql, schema, max_guess = max_guess))
 }
 
 #' @rdname gpkg_open

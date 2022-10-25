@@ -28,6 +28,14 @@ extern "C" SEXP _minigpkg_gpkg_cpp_exec(SEXP con_sexp, SEXP sql) {
   END_CPP11
 }
 // gpkg.cpp
+void gpkg_cpp_guess_schema(cpp11::sexp con_sexp, std::string sql, double max_guess, sexp schema_xptr);
+extern "C" SEXP _minigpkg_gpkg_cpp_guess_schema(SEXP con_sexp, SEXP sql, SEXP max_guess, SEXP schema_xptr) {
+  BEGIN_CPP11
+    gpkg_cpp_guess_schema(cpp11::as_cpp<cpp11::decay_t<cpp11::sexp>>(con_sexp), cpp11::as_cpp<cpp11::decay_t<std::string>>(sql), cpp11::as_cpp<cpp11::decay_t<double>>(max_guess), cpp11::as_cpp<cpp11::decay_t<sexp>>(schema_xptr));
+    return R_NilValue;
+  END_CPP11
+}
+// gpkg.cpp
 int gpkg_cpp_query(cpp11::sexp con_sexp, std::string sql, sexp schema_xptr, sexp array_xptr);
 extern "C" SEXP _minigpkg_gpkg_cpp_query(SEXP con_sexp, SEXP sql, SEXP schema_xptr, SEXP array_xptr) {
   BEGIN_CPP11
@@ -37,10 +45,11 @@ extern "C" SEXP _minigpkg_gpkg_cpp_query(SEXP con_sexp, SEXP sql, SEXP schema_xp
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_minigpkg_gpkg_cpp_close", (DL_FUNC) &_minigpkg_gpkg_cpp_close, 1},
-    {"_minigpkg_gpkg_cpp_exec",  (DL_FUNC) &_minigpkg_gpkg_cpp_exec,  2},
-    {"_minigpkg_gpkg_cpp_open",  (DL_FUNC) &_minigpkg_gpkg_cpp_open,  1},
-    {"_minigpkg_gpkg_cpp_query", (DL_FUNC) &_minigpkg_gpkg_cpp_query, 4},
+    {"_minigpkg_gpkg_cpp_close",        (DL_FUNC) &_minigpkg_gpkg_cpp_close,        1},
+    {"_minigpkg_gpkg_cpp_exec",         (DL_FUNC) &_minigpkg_gpkg_cpp_exec,         2},
+    {"_minigpkg_gpkg_cpp_guess_schema", (DL_FUNC) &_minigpkg_gpkg_cpp_guess_schema, 4},
+    {"_minigpkg_gpkg_cpp_open",         (DL_FUNC) &_minigpkg_gpkg_cpp_open,         1},
+    {"_minigpkg_gpkg_cpp_query",        (DL_FUNC) &_minigpkg_gpkg_cpp_query,        4},
     {NULL, NULL, 0}
 };
 }
